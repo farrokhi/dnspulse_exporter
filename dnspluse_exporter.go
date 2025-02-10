@@ -28,6 +28,7 @@ type Config struct {
 	ListenAddress  string `yaml:"listen_addr"`
 	ListenPort     string `yaml:"listen_port"`
 	VerboseLogging bool   `yaml:"verbose_logging"`
+	Timeout        int64  `yaml:"timeout"`
 }
 
 var (
@@ -83,12 +84,15 @@ func GenerateRandomPrefix(len uint) string {
 }
 
 // PerformDNSQuery performs a DNS A record lookup for a given hostname
-func PerformDNSQuery(hostname, server string) (float64, error) {
+func PerformDNSQuery(hostname, server string, timeout int64) (float64, error) {
 	var duration float64
 	var err error
 	client := new(dns.Client)
 	message := new(dns.Msg)
 
+	if timeout > 0 { // default timeout of 2 seconds in implied
+		client.Dialer.Timeout = time.Second * time.Duration(timeout)
+	}
 	message.SetQuestion(dns.Fqdn(hostname), dns.TypeA)
 
 	// The call to `Exchange()` does not retry, nor falls back to TCP. This is intended as we only
@@ -111,7 +115,7 @@ func runDNSQueries(config *Config) {
 			for i := 0; i < domain.Probes; i++ {
 				prefix := GenerateRandomPrefix(5)
 				hostname := fmt.Sprintf("%s.%s", prefix, domain.Name)
-				duration, err = PerformDNSQuery(hostname, serverAddr)
+				duration, err = PerformDNSQuery(hostname, serverAddr, config.Timeout)
 				if err == nil { // successful lookup
 					if config.VerboseLogging {
 						log.Printf("(%-25s)?(%s) - success - %-5.0f msec", hostname, serverAddr, duration*1000)
@@ -122,7 +126,6 @@ func runDNSQueries(config *Config) {
 						log.Printf("(%-25s)?(%s) - failed  - %-5.0f msec - error: %s", hostname, serverAddr, duration*1000, err)
 					}
 					dnsQueryFailures.WithLabelValues(domain.Name, serverAddr).Inc()
-					duration = float64(time.Second * 10)
 				}
 
 				dnsQueryDuration.WithLabelValues(domain.Name, serverAddr).Observe(duration)
