@@ -16,7 +16,11 @@ domains:
     probes: 3
 
 dns_servers:
-  - address: "8.8.8.2"
+  - address: "8.8.8.8"
     port: "53"
   - address: "9.9.9.9"
+    port: "53"
+  - address: "1.1.1.1"
+    port: "53"
+  - address: "4.2.2.4"
     port: "53"
