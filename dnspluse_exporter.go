@@ -25,8 +25,9 @@ type Config struct {
 		Address string `yaml:"address"`
 		Port    string `yaml:"port"`
 	} `yaml:"dns_servers"`
-	ListenAddress string `yaml:"listen_addr"`
-	ListenPort    string `yaml:"listen_port"`
+	ListenAddress  string `yaml:"listen_addr"`
+	ListenPort     string `yaml:"listen_port"`
+	VerboseLogging bool   `yaml:"verbose_logging"`
 }
 
 var (
@@ -82,9 +83,9 @@ func GenerateRandomPrefix(len uint) string {
 }
 
 // PerformDNSQuery performs a DNS A record lookup for a given hostname
-func PerformDNSQuery(domainName, server string) ([]string, error) {
-	var results []string
+func PerformDNSQuery(domainName, server string) (float64, error) {
 	var duration float64
+	var err error
 	client := new(dns.Client)
 	message := new(dns.Msg)
 
@@ -93,40 +94,40 @@ func PerformDNSQuery(domainName, server string) ([]string, error) {
 
 	message.SetQuestion(dns.Fqdn(hostname), dns.TypeA)
 
+	// The call to `Exchange()` does not retry, nor falls back to TCP. This is intended as we only
+	// care about success and timeout. You need to pick up a hostname that has a short answer that
+	// fits in UDP response.
 	start := time.Now()
+	_, _, err = client.Exchange(message, server)
+	duration = time.Since(start).Seconds()
 
-	// This call does not retry, nor falls back to TCP. This is intended. You need to pick up a
-	// hostname that has a short answer that fits in UDP response.
-	response, _, err := client.Exchange(message, server)
-	if err != nil {
-		duration = float64(time.Second * 10)
-	} else {
-		duration = time.Since(start).Seconds()
-	}
-
-	dnsQueryDuration.WithLabelValues(domainName, server).Observe(duration)
-
-	if err != nil {
-		dnsQueryFailures.WithLabelValues(domainName, server).Inc()
-		return nil, err
-	}
-	dnsQuerySuccess.WithLabelValues(domainName, server).Inc()
-
-	for _, ans := range response.Answer {
-		if a, ok := ans.(*dns.A); ok {
-			results = append(results, a.A.String())
-		}
-	}
-
-	return results, nil
+	return duration, err
 }
 
 func runDNSQueries(config *Config) {
+	var duration float64
+	var err error
+
 	for _, domain := range config.Domains {
 		for _, server := range config.DNSServers {
 			serverAddr := fmt.Sprintf("%s:%s", server.Address, server.Port)
 			for i := 0; i < domain.Probes; i++ {
-				_, _ = PerformDNSQuery(domain.Name, serverAddr)
+				duration, err = PerformDNSQuery(domain.Name, serverAddr)
+				if err == nil { // successful lookup
+					if config.VerboseLogging {
+						log.Printf("Looking up %s from %s - success - %3.2f sec", domain.Name, serverAddr, duration)
+					}
+					dnsQuerySuccess.WithLabelValues(domain.Name, serverAddr).Inc()
+				} else { // failed lookup
+					if config.VerboseLogging {
+						log.Printf("Looking up %s from %s - failed  - %3.2f sec (setting to 10 sec) - error: %s", domain.Name, serverAddr, duration, err)
+					}
+					dnsQueryFailures.WithLabelValues(domain.Name, serverAddr).Inc()
+					duration = float64(time.Second * 10)
+				}
+
+				dnsQueryDuration.WithLabelValues(domain.Name, serverAddr).Observe(duration)
+
 				time.Sleep(500 * time.Millisecond)
 			}
 		}
