@@ -83,14 +83,11 @@ func GenerateRandomPrefix(len uint) string {
 }
 
 // PerformDNSQuery performs a DNS A record lookup for a given hostname
-func PerformDNSQuery(domainName, server string) (float64, error) {
+func PerformDNSQuery(hostname, server string) (float64, error) {
 	var duration float64
 	var err error
 	client := new(dns.Client)
 	message := new(dns.Msg)
-
-	prefix := GenerateRandomPrefix(5)
-	hostname := fmt.Sprintf("%s.%s", prefix, domainName)
 
 	message.SetQuestion(dns.Fqdn(hostname), dns.TypeA)
 
@@ -112,15 +109,17 @@ func runDNSQueries(config *Config) {
 		for _, server := range config.DNSServers {
 			serverAddr := fmt.Sprintf("%s:%s", server.Address, server.Port)
 			for i := 0; i < domain.Probes; i++ {
-				duration, err = PerformDNSQuery(domain.Name, serverAddr)
+				prefix := GenerateRandomPrefix(5)
+				hostname := fmt.Sprintf("%s.%s", prefix, domain.Name)
+				duration, err = PerformDNSQuery(hostname, serverAddr)
 				if err == nil { // successful lookup
 					if config.VerboseLogging {
-						log.Printf("Looking up %s from %s - success - %3.2f sec", domain.Name, serverAddr, duration)
+						log.Printf("Looking up %s from %s - success - %3.2f sec", hostname, serverAddr, duration)
 					}
 					dnsQuerySuccess.WithLabelValues(domain.Name, serverAddr).Inc()
 				} else { // failed lookup
 					if config.VerboseLogging {
-						log.Printf("Looking up %s from %s - failed  - %3.2f sec (setting to 10 sec) - error: %s", domain.Name, serverAddr, duration, err)
+						log.Printf("Looking up %s from %s - failed  - %3.2f sec (setting to 10 sec) - error: %s", hostname, serverAddr, duration, err)
 					}
 					dnsQueryFailures.WithLabelValues(domain.Name, serverAddr).Inc()
 					duration = float64(time.Second * 10)
