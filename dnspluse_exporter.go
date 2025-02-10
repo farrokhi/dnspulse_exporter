@@ -84,6 +84,7 @@ func GenerateRandomPrefix() string {
 // PerformDNSQuery performs a DNS A record lookup for a given hostname
 func PerformDNSQuery(domainName, server string) ([]string, error) {
 	var results []string
+	var duration float64
 	client := new(dns.Client)
 	message := new(dns.Msg)
 
@@ -93,8 +94,15 @@ func PerformDNSQuery(domainName, server string) ([]string, error) {
 	message.SetQuestion(dns.Fqdn(hostname), dns.TypeA)
 
 	start := time.Now()
+
+	// This call does not retry, nor falls back to TCP. This is intended. You need to pick up a
+	// hostname that has a short answer that fits in UDP response.
 	response, _, err := client.Exchange(message, server)
-	duration := time.Since(start).Seconds()
+	if err != nil {
+		duration = float64(time.Second * 10)
+	} else {
+		duration = time.Since(start).Seconds()
+	}
 
 	dnsQueryDuration.WithLabelValues(domainName, server).Observe(duration)
 
