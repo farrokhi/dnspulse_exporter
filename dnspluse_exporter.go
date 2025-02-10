@@ -72,8 +72,8 @@ func LoadConfig(filename string) (*Config, error) {
 }
 
 // GenerateRandomPrefix creates a short random string to use as a hostname prefix
-func GenerateRandomPrefix() string {
-	b := make([]byte, 5)
+func GenerateRandomPrefix(len uint) string {
+	b := make([]byte, len)
 	_, err := rand.Read(b)
 	if err != nil {
 		log.Fatal("Error generating random prefix:", err)
@@ -88,7 +88,7 @@ func PerformDNSQuery(domainName, server string) ([]string, error) {
 	client := new(dns.Client)
 	message := new(dns.Msg)
 
-	prefix := GenerateRandomPrefix()
+	prefix := GenerateRandomPrefix(5)
 	hostname := fmt.Sprintf("%s.%s", prefix, domainName)
 
 	message.SetQuestion(dns.Fqdn(hostname), dns.TypeA)
