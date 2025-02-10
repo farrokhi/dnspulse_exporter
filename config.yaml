@@ -1,6 +1,11 @@
+# prometheus listener
 listen_addr: 127.0.0.1
 listen_port: 9953
-verbose_logging: true
+
+# log query time and success or failure - useful for debugging
+verbose_logging: false
+
+# Query timeout - Adjust for use-case, but do not set too high
 timeout: 2500
 
 # should be wildcard domains, as we add randomized prefix to evade cache
@@ -11,7 +16,7 @@ domains:
     probes: 3
 
 dns_servers:
-  - address: "8.8.8.8"
+  - address: "8.8.8.2"
     port: "53"
   - address: "9.9.9.9"
     port: "53"
