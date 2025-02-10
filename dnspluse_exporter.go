@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/miekg/dns"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 )
 
 // Config structure for YAML configuration file
@@ -60,7 +60,7 @@ func init() {
 
 // LoadConfig reads YAML configuration from a file
 func LoadConfig(filename string) (*Config, error) {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
