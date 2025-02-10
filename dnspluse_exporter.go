@@ -114,12 +114,12 @@ func runDNSQueries(config *Config) {
 				duration, err = PerformDNSQuery(hostname, serverAddr)
 				if err == nil { // successful lookup
 					if config.VerboseLogging {
-						log.Printf("Looking up %s from %s - success - %3.3f sec", hostname, serverAddr, duration)
+						log.Printf("(%-25s)?(%s) - success - %-5.0f msec", hostname, serverAddr, duration*1000)
 					}
 					dnsQuerySuccess.WithLabelValues(domain.Name, serverAddr).Inc()
 				} else { // failed lookup
 					if config.VerboseLogging {
-						log.Printf("Looking up %s from %s - failed  - %3.3f sec (setting to 10 sec) - error: %s", hostname, serverAddr, duration, err)
+						log.Printf("(%-25s)?(%s) - failed  - %-5.0f msec - error: %s", hostname, serverAddr, duration*1000, err)
 					}
 					dnsQueryFailures.WithLabelValues(domain.Name, serverAddr).Inc()
 					duration = float64(time.Second * 10)
