@@ -1,0 +1,15 @@
+listen_addr: 127.0.0.1
+listen_port: 9953
+
+# should be wildcard domains, as we add randomized prefix to evade cache
+domains:
+  - name: "blogspot.com"
+    probes: 3
+  - name: "wordpress.com"
+    probes: 3
+
+dns_servers:
+  - address: "8.8.8.8"
+    port: "53"
+  - address: "9.9.9.9"
+    port: "53"
