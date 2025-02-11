@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"encoding/base32"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,6 +15,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/yaml.v2"
 )
+
+const version = "1.0"
 
 // Config structure for YAML configuration file
 type Config struct {
@@ -137,7 +140,22 @@ func runDNSQueries(config *Config) {
 }
 
 func main() {
-	config, err := LoadConfig("config.yaml")
+
+	var configFile string = "/etc/dnspulse.yml"
+	var showVersion bool
+
+	//flags.StringVar(&config.ListenAddress, "listen-addr", "0.0.0.0", "Listen address")
+	//flags.StringVar(&config.ListenPort, "listen-port", "53", "Listen port")
+	flag.StringVar(&configFile, "f", configFile, "Path to config file")
+	flag.BoolVar(&showVersion, "v", false, "Show version information")
+	flag.Parse()
+
+	if showVersion {
+		fmt.Printf("dnspluse_exporter %s\n", version)
+		os.Exit(0)
+	}
+
+	config, err := LoadConfig(configFile)
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
