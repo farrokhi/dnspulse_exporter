@@ -1,0 +1,26 @@
+# /etc/systemd/system/dnspulse.service
+[Unit]
+Description=DNSPulse Prometheus Exporter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/dnspulse_exporter
+Restart=on-failure
+RestartSec=5
+
+# Security Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+
+# Run as a dedicated user
+User=daemon
+Group=daemon
+
+[Install]
+WantedBy=multi-user.target
