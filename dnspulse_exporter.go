@@ -19,7 +19,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.0"
+var (
+	version   = "1.1"
+	buildTime = "unknown"
+)
 
 // Config structure for YAML configuration file
 type Config struct {

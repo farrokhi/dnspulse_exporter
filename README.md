@@ -19,17 +19,48 @@ DNSPulse Exporter performs periodic DNS queries against configured DNS servers a
 
 ## Build
 
-For a specific platform:
+### Using Make (recommended)
+
+```bash
+make build       # Build the binary
+make test        # Run tests
+make install     # Install to system
+make help        # Show all available targets
 ```
+
+### Manual build
+
+For a specific platform:
+```bash
 env GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o dnspulse_exporter
 ```
 
 Or for the native platform:
-```
+```bash
 go build -ldflags "-s -w" -o dnspulse_exporter
 ```
 
 ## Installation
+
+### Using Make (recommended)
+
+```bash
+sudo make install
+```
+
+This will install:
+- Binary to `/usr/local/bin/dnspulse_exporter`
+- Configuration file to `/etc/dnspulse.yml`
+- Systemd service to `/etc/systemd/system/dnspulse.service`
+
+After installation with systemd:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable dnspulse.service
+sudo systemctl start dnspulse.service
+```
+
+### Manual installation
 
 ```bash
 # Copy binary
