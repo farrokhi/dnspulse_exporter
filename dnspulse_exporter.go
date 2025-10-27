@@ -174,6 +174,14 @@ func main() {
 	}()
 
 	http.Handle("/metrics", promhttp.Handler())
+
+	server := &http.Server{
+		Addr:         serverAddr,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
 	log.Printf("Starting Prometheus metrics server on %s", serverAddr)
-	log.Fatal(http.ListenAndServe(serverAddr, nil))
+	log.Fatal(server.ListenAndServe())
 }
