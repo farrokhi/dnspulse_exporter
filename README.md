@@ -1,23 +1,30 @@
-# DNSPulse Exporter
+# DNS Pulse Exporter
 
 [![Go](https://github.com/farrokhi/dnspulse_exporter/actions/workflows/go.yml/badge.svg)](https://github.com/farrokhi/dnspulse_exporter/actions/workflows/go.yml)
 
-A Prometheus exporter for monitoring DNS query performance across multiple DNS servers and domains.
-
-## Overview
-
-DNSPulse Exporter performs periodic DNS queries against configured DNS servers and exposes metrics in Prometheus format. It generates randomized subdomain queries to bypass DNS caching, providing accurate real-time performance measurements.
+A Prometheus exporter for monitoring DNS server performance and availability. This tool continuously performs DNS queries against multiple servers and domains, measuring response times and success rates to help you monitor DNS infrastructure health.
 
 ## Features
 
-- Monitors multiple DNS servers simultaneously
-- Performs randomized subdomain queries to avoid cache hits
-- Configurable query timeout and probe counts
-- Exposes Prometheus metrics for query duration, success, and failure rates
-- Built-in HTTP server with timeout protection against slowloris attacks
-- Systemd integration for production deployment
+- **DNS Performance Monitoring**: Measures query response times and success/failure rates
+- **Cache Bypass**: Uses randomized hostname prefixes to avoid DNS caching effects
+- **Multi-Server Support**: Tests multiple DNS servers sequentially
+- **Prometheus Integration**: Exposes metrics in Prometheus format via `/metrics` endpoint
+- **Configurable Testing**: Customizable domains, probe counts, timeouts, and server lists
+- **Continuous Monitoring**: Runs automated tests every 30 seconds
+- **Verbose Logging**: Optional detailed logging for debugging
+- **Security Hardening**: HTTP server with timeout protection against slowloris attacks
+- **Systemd Integration**: Ready for production deployment
 
-## Build
+## Metrics Exported
+
+- `dns_query_duration_seconds` - Histogram of DNS query response times
+- `dns_query_success_total` - Counter of successful DNS queries
+- `dns_query_failures_total` - Counter of failed DNS queries
+
+All metrics include labels for `domain` and `server` to enable detailed analysis.
+
+## Installation
 
 ### Using Make (recommended)
 
@@ -28,27 +35,7 @@ make install     # Install to system
 make help        # Show all available targets
 ```
 
-### Manual build
-
-For a specific platform:
-```bash
-env GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o dnspulse_exporter
-```
-
-Or for the native platform:
-```bash
-go build -ldflags "-s -w" -o dnspulse_exporter
-```
-
-## Installation
-
-### Using Make (recommended)
-
-```bash
-sudo make install
-```
-
-This will install:
+The `make install` command will install:
 - Binary to `/usr/local/bin/dnspulse_exporter`
 - Configuration file to `/etc/dnspulse.yml`
 - Systemd service to `/etc/systemd/system/dnspulse.service`
@@ -60,7 +47,19 @@ sudo systemctl enable dnspulse.service
 sudo systemctl start dnspulse.service
 ```
 
-### Manual installation
+### Building from Source
+
+For a specific platform:
+```bash
+env GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o dnspulse_exporter
+```
+
+Or for the native platform:
+```bash
+go build -ldflags "-s -w" -o dnspulse_exporter
+```
+
+### Manual Installation
 
 ```bash
 # Copy binary
@@ -76,22 +75,39 @@ sudo systemctl enable dnspulse.service
 sudo systemctl start dnspulse.service
 ```
 
+## Running
+
+```bash
+# Use default config file (/etc/dnspulse.yml)
+./dnspulse_exporter
+
+# Specify custom config file
+./dnspulse_exporter -f /path/to/config.yml
+
+# Show version
+./dnspulse_exporter -v
+```
+
+The exporter will start an HTTP server on the configured port (default: 9953) and begin monitoring DNS servers.
+
 ## Configuration
 
-Create a configuration file at `/etc/dnspulse.yml`:
+Create a YAML configuration file (default: `/etc/dnspulse.yml`) with the following structure:
+
+### Basic Configuration Example
 
 ```yaml
-# Prometheus listener
+# Prometheus metrics listener
 listen_addr: "*"
 listen_port: 9953
 
-# Log query time and success or failure - useful for debugging
+# Enable detailed logging (useful for debugging)
 verbose_logging: false
 
-# Query timeout in milliseconds
+# Query timeout in milliseconds (default: 2000 if not specified)
 timeout: 2500
 
-# Domains to query (should be wildcard domains)
+# Domains to test (use wildcard domains for cache bypass)
 domains:
   - name: "blogspot.com"
     probes: 3
@@ -108,63 +124,82 @@ dns_servers:
     port: "53"
 ```
 
-### Configuration Options
+### Advanced Configuration Example
 
-- `listen_addr`: IP address to bind the HTTP metrics server (use `*` for all interfaces)
-- `listen_port`: Port for the Prometheus metrics endpoint
-- `verbose_logging`: Enable detailed logging of each DNS query
-- `timeout`: DNS query timeout in milliseconds
-- `domains`: List of domains to query with randomized prefixes
-  - `name`: Base domain name
-  - `probes`: Number of queries per cycle
-- `dns_servers`: List of DNS servers to monitor
-  - `address`: DNS server IP address
-  - `port`: DNS server port (usually 53)
+```yaml
+listen_addr: "0.0.0.0"
+listen_port: 9953
+verbose_logging: true
+timeout: 5000
 
-## Usage
+domains:
+  - name: "example.com"
+    probes: 5
+  - name: "github.com"
+    probes: 3
+  - name: "stackoverflow.com"
+    probes: 2
 
-### Command Line Flags
-
-```bash
-dnspulse_exporter [flags]
+dns_servers:
+  # Public DNS servers
+  - address: "8.8.8.8"
+    port: "53"
+  - address: "8.8.4.4"
+    port: "53"
+  - address: "1.1.1.1"
+    port: "53"
+  - address: "1.0.0.1"
+    port: "53"
+  # Internal corporate DNS
+  - address: "192.168.1.10"
+    port: "53"
+  - address: "10.0.0.53"
+    port: "53"
 ```
 
-Available flags:
-- `-f <path>`: Path to configuration file (default: `/etc/dnspulse.yml`)
-- `-v`: Show version information
+**Note**: This tool supports standard DNS queries only (UDP/TCP on port 53). DNS over HTTPS (DoH) and DNS over TLS (DoT) are not supported.
 
-### Running
+## Configuration Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `listen_addr` | IP address to bind the metrics server | `"*"` (all interfaces) |
+| `listen_port` | Port for the metrics server | `9953` |
+| `verbose_logging` | Enable detailed query logging | `false` |
+| `timeout` | DNS query timeout in milliseconds | `2000` (default if not specified) |
+| `domains` | List of domains to test with probe counts | - |
+| `dns_servers` | List of DNS servers with address and port | - |
+
+## Systemd Service
+
+A systemd service file is included in the `systemd/` directory. To install:
 
 ```bash
-# Using default config location
-dnspulse_exporter
-
-# Using custom config file
-dnspulse_exporter -f /path/to/config.yml
-
-# Check version
-dnspulse_exporter -v
+sudo cp systemd/dnspulse.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable dnspulse
+sudo systemctl start dnspulse
 ```
 
-## Metrics
+## Prometheus Configuration
 
-The exporter exposes the following Prometheus metrics at `/metrics`:
-
-- `dns_query_duration_seconds`: Histogram of DNS query durations
-  - Labels: `domain`, `server`
-- `dns_query_success_total`: Counter of successful DNS queries
-  - Labels: `domain`, `server`
-- `dns_query_failures_total`: Counter of failed DNS queries
-  - Labels: `domain`, `server`
-
-### Example Prometheus Configuration
+Add the following to your Prometheus configuration:
 
 ```yaml
 scrape_configs:
-  - job_name: 'dnspulse'
+  - job_name: 'dns-pulse'
     static_configs:
       - targets: ['localhost:9953']
+    scrape_interval: 30s
 ```
+
+## How It Works
+
+1. **Randomized Testing**: For each domain, the exporter generates a random prefix (e.g., `abc12.example.com`) to bypass DNS caching
+2. **Sequential Queries**: Tests all configured DNS servers sequentially, with a 500ms delay between each probe
+3. **Metrics Collection**: Records response times, success/failure counts with server and domain labels
+4. **Continuous Operation**: Repeats the testing cycle every 30 seconds
+5. **Prometheus Export**: Makes metrics available at `/metrics` endpoint for scraping
 
 ## Security
 
