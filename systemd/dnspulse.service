@@ -1,13 +1,20 @@
 # /etc/systemd/system/dnspulse.service
 [Unit]
-Description=DNSPulse Prometheus Exporter
+Description=DNS Pulse Exporter - Prometheus DNS monitoring service
+Documentation=https://github.com/farrokhi/dnspulse_exporter
 After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/usr/bin/dnspulse_exporter
+Type=simple
+ExecStart=/usr/bin/dnspulse_exporter -f /etc/dnspulse.yml
+ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
-RestartSec=5
+RestartSec=10
+TimeoutStopSec=20
+
+# Environment
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
 
 # Security Hardening
 NoNewPrivileges=true
@@ -18,9 +25,19 @@ ProtectKernelModules=true
 ProtectControlGroups=true
 RestrictAddressFamilies=AF_INET AF_INET6
 
-# Run as a dedicated user
+# Resource limits
+TasksMax=10
+LimitNOFILE=1024
+LimitNPROC=10
+
+# Run as daemon user
 User=daemon
 Group=daemon
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dnspulse_exporter
 
 [Install]
 WantedBy=multi-user.target
