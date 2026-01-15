@@ -157,7 +157,7 @@ func main() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Printf("dnspluse_exporter %s\n", version)
+		fmt.Printf("dnspulse_exporter %s\n", version)
 		os.Exit(0)
 	}
 
