@@ -218,4 +218,4 @@ When running via systemd, the service includes security hardening options such a
 
 This project is licensed under the BSD 2-Clause License. See the [LICENSE](LICENSE) file for details.
 
-Copyright (c) 2025 Babak Farrokhi
+Copyright (c) 2026 Babak Farrokhi

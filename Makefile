@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-2-Clause
-# Copyright (c) 2025 Babak Farrokhi
+# Copyright (c) 2026 Babak Farrokhi
 
 # Binary name
 BINARY_NAME=dnspulse_exporter
