@@ -99,8 +99,11 @@ func PerformDNSQuery(hostname, server string, timeout int64) (float64, error) {
 	client := new(dns.Client)
 	message := new(dns.Msg)
 
-	if timeout > 0 { // default timeout of 2000 milliseconds in implied
+	// Set timeout: use provided value or default to 2000 milliseconds
+	if timeout > 0 {
 		client.Timeout = time.Duration(timeout) * time.Millisecond
+	} else {
+		client.Timeout = 2000 * time.Millisecond
 	}
 	message.SetQuestion(dns.Fqdn(hostname), dns.TypeA)
 
