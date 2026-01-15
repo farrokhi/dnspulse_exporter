@@ -21,6 +21,7 @@ import (
 
 var (
 	version   = "1.1"
+	gitCommit = "dev"
 	buildTime = "unknown"
 )
 
@@ -160,7 +161,7 @@ func main() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Printf("dnspulse_exporter %s\n", version)
+		fmt.Printf("dnspulse_exporter %s (commit: %s, built: %s)\n", version, gitCommit, buildTime)
 		os.Exit(0)
 	}
 

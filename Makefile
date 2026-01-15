@@ -5,9 +5,10 @@
 BINARY_NAME=dnspulse_exporter
 
 # Build variables
-VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+VERSION?=$(shell grep -E 'version.*=.*"[0-9]' dnspulse_exporter.go | head -1 | sed 's/.*"\([^"]*\)".*/\1/')
+GIT_COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo "dev")
 BUILD_TIME=$(shell date -u '+%Y-%m-%d_%H:%M:%S')
-LDFLAGS=-ldflags "-s -w -X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME)"
+LDFLAGS=-ldflags "-s -w -X main.version=$(VERSION) -X main.gitCommit=$(GIT_COMMIT) -X main.buildTime=$(BUILD_TIME)"
 
 # Go parameters
 GOCMD=go

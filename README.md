@@ -84,7 +84,7 @@ sudo systemctl start dnspulse.service
 # Specify custom config file
 ./dnspulse_exporter -f /path/to/config.yml
 
-# Show version
+# Show version (displays version, git commit hash, and build time)
 ./dnspulse_exporter -v
 ```
 
