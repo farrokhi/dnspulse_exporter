@@ -5,7 +5,7 @@
 BINARY_NAME=dnspulse_exporter
 
 # Build variables
-VERSION?=$(shell grep -E 'version.*=.*"[0-9]' dnspulse_exporter.go | head -1 | sed 's/.*"\([^"]*\)".*/\1/')
+VERSION?=$(shell grep -E 'version.*=.*"[0-9]' cmd/dnspulse_exporter/main.go | head -1 | sed 's/.*"\([^"]*\)".*/\1/')
 GIT_COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo "dev")
 BUILD_TIME=$(shell date -u '+%Y-%m-%d_%H:%M:%S')
 LDFLAGS=-ldflags "-s -w -X main.version=$(VERSION) -X main.gitCommit=$(GIT_COMMIT) -X main.buildTime=$(BUILD_TIME)"
@@ -19,6 +19,9 @@ GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 GOFMT=gofmt
 GOVET=$(GOCMD) vet
+
+# Main package path
+MAIN_PKG=./cmd/dnspulse_exporter
 
 # Installation paths
 PREFIX?=/usr/local
@@ -47,16 +50,16 @@ help:
 ## build: Build the binary
 build:
 	@echo "$(COLOR_YELLOW)Building $(BINARY_NAME)...$(COLOR_RESET)"
-	$(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME) -v
+	$(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME) -v $(MAIN_PKG)
 
 ## build-all: Build for multiple platforms
 build-all:
 	@echo "$(COLOR_YELLOW)Building for multiple platforms...$(COLOR_RESET)"
-	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME)-linux-amd64
-	GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME)-linux-arm64
-	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME)-darwin-amd64
-	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME)-darwin-arm64
-	GOOS=freebsd GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME)-freebsd-amd64
+	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME)-linux-amd64 $(MAIN_PKG)
+	GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME)-linux-arm64 $(MAIN_PKG)
+	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME)-darwin-amd64 $(MAIN_PKG)
+	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME)-darwin-arm64 $(MAIN_PKG)
+	GOOS=freebsd GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME)-freebsd-amd64 $(MAIN_PKG)
 	@echo "$(COLOR_GREEN)Multi-platform build complete$(COLOR_RESET)"
 
 ## test: Run tests
@@ -75,6 +78,12 @@ test-coverage:
 	$(GOTEST) -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 	$(GOCMD) tool cover -html=coverage.txt -o coverage.html
 	@echo "$(COLOR_GREEN)Coverage report generated: coverage.html$(COLOR_RESET)"
+
+## test-integration: Run integration tests against real DNS servers (requires network)
+test-integration:
+	@echo "$(COLOR_YELLOW)Running integration tests against Quad9...$(COLOR_RESET)"
+	$(GOTEST) -tags=integration -v ./internal/resolver/ -run Integration -timeout 60s
+	@echo "$(COLOR_GREEN)Integration tests passed$(COLOR_RESET)"
 
 ## fmt: Format code
 fmt:

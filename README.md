@@ -2,19 +2,26 @@
 
 [![Go](https://github.com/farrokhi/dnspulse_exporter/actions/workflows/go.yml/badge.svg)](https://github.com/farrokhi/dnspulse_exporter/actions/workflows/go.yml)
 
-A Prometheus exporter for monitoring DNS server performance and availability. This tool continuously performs DNS queries against multiple servers and domains, measuring response times and success rates to help you monitor DNS infrastructure health.
+A Prometheus exporter for monitoring DNS query performance across multiple DNS servers, domains, and protocols.
+
+## Overview
+
+DNSPulse Exporter performs periodic DNS queries against configured DNS servers and exposes metrics in Prometheus format. It generates randomized subdomain queries to bypass DNS caching, providing accurate real-time performance measurements.
 
 ## Features
 
-- **DNS Performance Monitoring**: Measures query response times and success/failure rates
-- **Cache Bypass**: Uses randomized hostname prefixes to avoid DNS caching effects
-- **Multi-Server Support**: Tests multiple DNS servers sequentially
-- **Prometheus Integration**: Exposes metrics in Prometheus format via `/metrics` endpoint
-- **Configurable Testing**: Customizable domains, probe counts, timeouts, and server lists
-- **Continuous Monitoring**: Runs automated tests every 30 seconds
-- **Verbose Logging**: Optional detailed logging for debugging
-- **Security Hardening**: HTTP server with timeout protection against slowloris attacks
-- **Systemd Integration**: Ready for production deployment
+DNSPulse supports multiple DNS protocols for comprehensive monitoring:
+
+| Protocol | Description | Default Port | RFC |
+|----------|-------------|--------------|-----|
+| do53-udp | Traditional DNS over UDP | 53 | RFC 1035 |
+| do53-tcp | Traditional DNS over TCP | 53 | RFC 1035 |
+| dot | DNS over TLS | 853 | RFC 7858 |
+| doh | DNS over HTTPS (HTTP/2) | 443 | RFC 8484 |
+| doh3 | DNS over HTTPS (HTTP/3) | 443 | RFC 8484 |
+| doq | DNS over QUIC | 853 | RFC 9250 |
+
+Additional features include randomized subdomain queries to avoid cache hits, configurable timeouts and probe counts, per-protocol metrics with Prometheus labels, and systemd integration for production deployment.
 
 ## Metrics Exported
 
@@ -22,54 +29,38 @@ A Prometheus exporter for monitoring DNS server performance and availability. Th
 - `dns_query_success_total` - Counter of successful DNS queries
 - `dns_query_failures_total` - Counter of failed DNS queries
 
-All metrics include labels for `domain` and `server` to enable detailed analysis.
+All metrics include labels for `domain`, `server`, and `protocol` to enable detailed analysis.
 
 ## Installation
 
-### Using Make (recommended)
+Using Make (recommended):
 
 ```bash
 make build       # Build the binary
-make test        # Run tests
-make install     # Install to system
+make test        # Run unit tests
+make test-integration  # Run integration tests against Quad9
 make help        # Show all available targets
 ```
 
-The `make install` command will install:
-- Binary to `/usr/local/bin/dnspulse_exporter`
-- Configuration file to `/etc/dnspulse.yml`
-- Systemd service to `/etc/systemd/system/dnspulse.service`
+Manual build:
 
-After installation with systemd:
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable dnspulse.service
-sudo systemctl start dnspulse.service
+go build -ldflags "-s -w" -o dnspulse_exporter ./cmd/dnspulse_exporter
 ```
 
-### Building from Source
+## System Installation
 
-For a specific platform:
+Using Make:
+
 ```bash
-env GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o dnspulse_exporter
+sudo make install
 ```
 
-Or for the native platform:
-```bash
-go build -ldflags "-s -w" -o dnspulse_exporter
-```
+This installs the binary to `/usr/local/bin/dnspulse_exporter`, the configuration file to `/etc/dnspulse.yml`, and the systemd service to `/etc/systemd/system/dnspulse.service`.
 
-### Manual Installation
+After installation:
 
 ```bash
-# Copy binary
-sudo cp dnspulse_exporter /usr/bin/
-
-# Copy configuration
-sudo cp dnspulse.yml /etc/
-
-# Install systemd service (optional)
-sudo cp systemd/dnspulse.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable dnspulse.service
 sudo systemctl start dnspulse.service
@@ -97,32 +88,82 @@ Create a YAML configuration file (default: `/etc/dnspulse.yml`) with the followi
 ### Basic Configuration Example
 
 ```yaml
-# Prometheus metrics listener
 listen_addr: "*"
 listen_port: 9953
-
-# Enable detailed logging (useful for debugging)
 verbose_logging: false
-
-# Query timeout in milliseconds (default: 2000 if not specified)
 timeout: 2500
 
-# Domains to test (use wildcard domains for cache bypass)
 domains:
-  - name: "blogspot.com"
-    probes: 3
-  - name: "wordpress.com"
+  - name: "example.com"
     probes: 3
 
-# DNS servers to monitor
 dns_servers:
-  - address: "8.8.8.8"
-    port: "53"
+  # Traditional DNS (UDP)
   - address: "9.9.9.9"
     port: "53"
-  - address: "1.1.1.1"
+    protocol: "do53-udp"
+
+  # Traditional DNS (TCP)
+  - address: "9.9.9.9"
     port: "53"
+    protocol: "do53-tcp"
+
+  # DNS over TLS
+  - address: "9.9.9.9"
+    port: "853"
+    protocol: "dot"
+    tls:
+      server_name: "dns.quad9.net"
+
+  # DNS over HTTPS (HTTP/2)
+  - address: "dns.quad9.net"
+    port: "443"
+    protocol: "doh"
+    tls:
+      server_name: "dns.quad9.net"
+
+  # DNS over HTTPS (HTTP/3)
+  - address: "dns.quad9.net"
+    port: "443"
+    protocol: "doh3"
+    tls:
+      server_name: "dns.quad9.net"
+
+  # DNS over QUIC
+  - address: "dns.quad9.net"
+    port: "853"
+    protocol: "doq"
+    tls:
+      server_name: "dns.quad9.net"
 ```
+
+### Configuration Reference
+
+Global settings:
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| listen_addr | IP address to bind (use `*` for all interfaces) | - |
+| listen_port | Port for Prometheus metrics endpoint | - |
+| verbose_logging | Enable detailed query logging | false |
+| timeout | DNS query timeout in milliseconds | - |
+
+Domain settings:
+
+| Field | Description |
+|-------|-------------|
+| name | Base domain name for queries |
+| probes | Number of queries per cycle |
+
+DNS server settings:
+
+| Field | Description | Required |
+|-------|-------------|----------|
+| address | DNS server IP or hostname | Yes |
+| port | DNS server port | No (protocol default) |
+| protocol | Protocol to use (see table above) | No (do53-udp) |
+| tls.server_name | TLS SNI server name | No (uses address) |
+| tls.insecure_skip_verify | Skip TLS certificate verification | No (false) |
 
 ### Advanced Configuration Example
 
@@ -139,51 +180,30 @@ domains:
     probes: 3
   - name: "stackoverflow.com"
     probes: 2
-
-dns_servers:
-  # Public DNS servers
-  - address: "8.8.8.8"
-    port: "53"
-  - address: "8.8.4.4"
-    port: "53"
-  - address: "1.1.1.1"
-    port: "53"
-  - address: "1.0.0.1"
-    port: "53"
-  # Internal corporate DNS
-  - address: "192.168.1.10"
-    port: "53"
-  - address: "10.0.0.53"
-    port: "53"
-```
-
-**Note**: This tool supports standard DNS queries only (UDP/TCP on port 53). DNS over HTTPS (DoH) and DNS over TLS (DoT) are not supported.
-
-## Configuration Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `listen_addr` | IP address to bind the metrics server | `"*"` (all interfaces) |
-| `listen_port` | Port for the metrics server | `9953` |
-| `verbose_logging` | Enable detailed query logging | `false` |
-| `timeout` | DNS query timeout in milliseconds | `2000` (default if not specified) |
-| `domains` | List of domains to test with probe counts | - |
-| `dns_servers` | List of DNS servers with address and port | - |
-
-## Systemd Service
-
-A systemd service file is included in the `systemd/` directory. To install:
-
-```bash
-sudo cp systemd/dnspulse.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable dnspulse
-sudo systemctl start dnspulse
 ```
 
 ## Prometheus Configuration
 
-Add the following to your Prometheus configuration:
+The exporter exposes the following Prometheus metrics at `/metrics`:
+
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| dns_query_duration_seconds | Histogram | domain, server, protocol | DNS query duration |
+| dns_query_success_total | Counter | domain, server, protocol | Successful queries |
+| dns_query_failures_total | Counter | domain, server, protocol | Failed queries |
+
+Example Prometheus queries:
+
+```promql
+# Average query duration by protocol
+avg by (protocol) (rate(dns_query_duration_seconds_sum[5m]) / rate(dns_query_duration_seconds_count[5m]))
+
+# Success rate by server
+sum by (server) (rate(dns_query_success_total[5m])) /
+(sum by (server) (rate(dns_query_success_total[5m])) + sum by (server) (rate(dns_query_failures_total[5m])))
+```
+
+Prometheus scrape configuration:
 
 ```yaml
 scrape_configs:
@@ -193,29 +213,22 @@ scrape_configs:
     scrape_interval: 30s
 ```
 
-## How It Works
+## Project Structure
 
-1. **Randomized Testing**: For each domain, the exporter generates a random prefix (e.g., `abc12.example.com`) to bypass DNS caching
-2. **Sequential Queries**: Tests all configured DNS servers sequentially, with a 500ms delay between each probe
-3. **Metrics Collection**: Records response times, success/failure counts with server and domain labels
-4. **Continuous Operation**: Repeats the testing cycle every 30 seconds
-5. **Prometheus Export**: Makes metrics available at `/metrics` endpoint for scraping
-
-## Security
-
-The HTTP server includes the following timeout protections:
-- **ReadTimeout**: 5 seconds - protects against slowloris attacks
-- **WriteTimeout**: 10 seconds - ensures timely response delivery
-- **IdleTimeout**: 120 seconds - manages keep-alive connections
-
-When running via systemd, the service includes security hardening options such as:
-- No new privileges
-- Protected system and home directories
-- Private temporary directory
-- Restricted address families (IPv4/IPv6 only)
+```
+dnspulse_exporter/
+├── cmd/dnspulse_exporter/    # Application entry point
+├── internal/
+│   ├── config/               # Configuration parsing
+│   ├── metrics/              # Prometheus metrics
+│   ├── prober/               # Query orchestration
+│   └── resolver/             # Protocol implementations
+├── dnspulse.yml              # Example configuration
+└── Makefile
+```
 
 ## License
 
-This project is licensed under the BSD 2-Clause License. See the [LICENSE](LICENSE) file for details.
+BSD 2-Clause License. See [LICENSE](LICENSE) for details.
 
 Copyright (c) 2026 Babak Farrokhi

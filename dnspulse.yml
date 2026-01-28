@@ -1,26 +1,61 @@
-# prometheus listener
+# DNSPulse Exporter Configuration
+
+# Prometheus metrics endpoint
 listen_addr: "*"
 listen_port: 9953
 
-# log query time and success or failure - useful for debugging
+# Enable detailed logging of each query (useful for debugging)
 verbose_logging: false
 
-# Query timeout - Adjust for use-case, but do not set too high
+# Query timeout in milliseconds
 timeout: 2500
 
-# should be wildcard domains, as we add randomized prefix to evade cache
+# Domains to probe (use wildcard domains since we add random prefixes)
 domains:
   - name: "blogspot.com"
     probes: 3
   - name: "wordpress.com"
     probes: 3
 
+# DNS servers to monitor
+#
+# Supported protocols:
+#   do53-udp  - Traditional DNS over UDP (port 53)
+#   do53-tcp  - Traditional DNS over TCP (port 53)
+#   dot       - DNS over TLS (port 853)
+#   doh       - DNS over HTTPS with HTTP/2 (port 443)
+#   doh3      - DNS over HTTPS with HTTP/3 (port 443)
+#   doq       - DNS over QUIC (port 853)
+
 dns_servers:
-  - address: "8.8.8.8"
-    port: "53"
+  # Quad9 - Do53 UDP
   - address: "9.9.9.9"
-    port: "53"
+    protocol: "do53-udp"
+
+  # Google - Do53 UDP
+  - address: "8.8.8.8"
+    protocol: "do53-udp"
+
+  # Cloudflare - Do53 UDP
   - address: "1.1.1.1"
-    port: "53"
-  - address: "4.2.2.4"
-    port: "53"
+    protocol: "do53-udp"
+
+  # Quad9 - DNS over TLS
+  - address: "9.9.9.9"
+    port: "853"
+    protocol: "dot"
+    tls:
+      server_name: "dns.quad9.net"
+
+  # Quad9 - DNS over HTTPS (HTTP/2)
+  - address: "dns.quad9.net"
+    protocol: "doh"
+
+  # Quad9 - DNS over HTTPS (HTTP/3)
+  - address: "dns.quad9.net"
+    protocol: "doh3"
+
+  # Quad9 - DNS over QUIC
+  - address: "dns.quad9.net"
+    port: "853"
+    protocol: "doq"
