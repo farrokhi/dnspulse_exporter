@@ -65,7 +65,9 @@ func (r *DoQResolver) Query(ctx context.Context, hostname string, qtype uint16) 
 			Err:      fmt.Errorf("QUIC dial failed: %w", err),
 		}
 	}
-	defer conn.CloseWithError(0, "")
+	defer func() {
+		_ = conn.CloseWithError(0, "")
+	}()
 
 	stream, err := conn.OpenStreamSync(queryCtx)
 	if err != nil {
