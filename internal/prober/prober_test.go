@@ -90,7 +90,7 @@ func TestGenerateRandomPrefix(t *testing.T) {
 	t.Run("generates valid base32 string", func(t *testing.T) {
 		prefix := generateRandomPrefix(5)
 		for _, c := range prefix {
-			if !((c >= 'A' && c <= 'Z') || (c >= '2' && c <= '7')) {
+			if (c < 'A' || c > 'Z') && (c < '2' || c > '7') {
 				t.Errorf("Invalid base32 character: %c", c)
 			}
 		}

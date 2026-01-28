@@ -116,7 +116,7 @@ func TestNewResolver(t *testing.T) {
 				t.Errorf("Expected protocol '%s', got '%s'", tt.expectedProto, r.Protocol())
 			}
 
-			r.Close()
+			_ = r.Close()
 		})
 	}
 }
@@ -134,7 +134,7 @@ func TestNewResolverTLSDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewResolver failed: %v", err)
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	if r.Protocol() != "dot" {
 		t.Errorf("Expected protocol 'dot', got '%s'", r.Protocol())

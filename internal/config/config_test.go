@@ -14,7 +14,7 @@ func TestLoad(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create temp file: %v", err)
 		}
-		defer os.Remove(tempFile.Name())
+		defer func() { _ = os.Remove(tempFile.Name()) }()
 
 		configContent := `
 listen_addr: "127.0.0.1"
@@ -31,7 +31,7 @@ dns_servers:
 		if _, err := tempFile.WriteString(configContent); err != nil {
 			t.Fatalf("Failed to write to temp file: %v", err)
 		}
-		tempFile.Close()
+		_ = tempFile.Close()
 
 		config, err := Load(tempFile.Name())
 		if err != nil {
@@ -70,13 +70,13 @@ dns_servers:
 		if err != nil {
 			t.Fatalf("Failed to create temp file: %v", err)
 		}
-		defer os.Remove(tempFile.Name())
+		defer func() { _ = os.Remove(tempFile.Name()) }()
 
 		invalidContent := "invalid: yaml: content: ["
 		if _, err := tempFile.WriteString(invalidContent); err != nil {
 			t.Fatalf("Failed to write to temp file: %v", err)
 		}
-		tempFile.Close()
+		_ = tempFile.Close()
 
 		_, err = Load(tempFile.Name())
 		if err == nil {
@@ -90,7 +90,7 @@ func TestDefaultProtocol(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
-	defer os.Remove(tempFile.Name())
+	defer func() { _ = os.Remove(tempFile.Name()) }()
 
 	configContent := `
 listen_addr: "127.0.0.1"
@@ -105,7 +105,7 @@ dns_servers:
 	if _, err := tempFile.WriteString(configContent); err != nil {
 		t.Fatalf("Failed to write to temp file: %v", err)
 	}
-	tempFile.Close()
+	_ = tempFile.Close()
 
 	config, err := Load(tempFile.Name())
 	if err != nil {
@@ -124,7 +124,7 @@ func TestProtocolValidation(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create temp file: %v", err)
 			}
-			defer os.Remove(tempFile.Name())
+			defer func() { _ = os.Remove(tempFile.Name()) }()
 
 			configContent := `
 listen_addr: "127.0.0.1"
@@ -140,7 +140,7 @@ dns_servers:
 			if _, err := tempFile.WriteString(configContent); err != nil {
 				t.Fatalf("Failed to write to temp file: %v", err)
 			}
-			tempFile.Close()
+			_ = tempFile.Close()
 
 			_, err = Load(tempFile.Name())
 			if err != nil {
@@ -154,7 +154,7 @@ dns_servers:
 		if err != nil {
 			t.Fatalf("Failed to create temp file: %v", err)
 		}
-		defer os.Remove(tempFile.Name())
+		defer func() { _ = os.Remove(tempFile.Name()) }()
 
 		configContent := `
 listen_addr: "127.0.0.1"
@@ -170,7 +170,7 @@ dns_servers:
 		if _, err := tempFile.WriteString(configContent); err != nil {
 			t.Fatalf("Failed to write to temp file: %v", err)
 		}
-		tempFile.Close()
+		_ = tempFile.Close()
 
 		_, err = Load(tempFile.Name())
 		if err == nil {
@@ -184,7 +184,7 @@ func TestTLSConfigDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
-	defer os.Remove(tempFile.Name())
+	defer func() { _ = os.Remove(tempFile.Name()) }()
 
 	configContent := `
 listen_addr: "127.0.0.1"
@@ -200,7 +200,7 @@ dns_servers:
 	if _, err := tempFile.WriteString(configContent); err != nil {
 		t.Fatalf("Failed to write to temp file: %v", err)
 	}
-	tempFile.Close()
+	_ = tempFile.Close()
 
 	config, err := Load(tempFile.Name())
 	if err != nil {

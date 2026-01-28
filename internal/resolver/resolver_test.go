@@ -57,7 +57,7 @@ func TestDoQResolverProtocol(t *testing.T) {
 
 func TestDo53Query(t *testing.T) {
 	r := NewDo53Resolver("8.8.8.8", "53", false, 5*time.Second)
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	ctx := context.Background()
 	result := r.Query(ctx, "example.com", dns.TypeA)
@@ -78,7 +78,7 @@ func TestDo53Query(t *testing.T) {
 
 func TestDo53QueryTimeout(t *testing.T) {
 	r := NewDo53Resolver("192.0.2.1", "53", false, 100*time.Millisecond)
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	ctx := context.Background()
 	result := r.Query(ctx, "example.com", dns.TypeA)

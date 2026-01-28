@@ -46,7 +46,7 @@ func NewDoHResolver(address, port, serverName string, insecureSkipVerify bool, t
 			}
 			tlsConn := tls.Client(conn, tlsConfig)
 			if err := tlsConn.HandshakeContext(ctx); err != nil {
-				conn.Close()
+				_ = conn.Close()
 				return nil, err
 			}
 			return tlsConn, nil
@@ -97,7 +97,7 @@ func (r *DoHResolver) Query(ctx context.Context, hostname string, qtype uint16) 
 			Err:      fmt.Errorf("HTTP/2 request failed: %w", err),
 		}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)

@@ -79,7 +79,7 @@ func (r *DoH3Resolver) Query(ctx context.Context, hostname string, qtype uint16)
 			Err:      fmt.Errorf("HTTP/3 request failed: %w", err),
 		}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return QueryResult{

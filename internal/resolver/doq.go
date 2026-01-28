@@ -80,14 +80,14 @@ func (r *DoQResolver) Query(ctx context.Context, hostname string, qtype uint16) 
 	// DoQ uses a 2-byte length prefix (RFC 9250)
 	lengthPrefix := []byte{byte(len(wireMsg) >> 8), byte(len(wireMsg))}
 	if _, err := stream.Write(lengthPrefix); err != nil {
-		stream.Close()
+		_ = stream.Close()
 		return QueryResult{
 			Duration: time.Since(start),
 			Err:      fmt.Errorf("failed to write length prefix: %w", err),
 		}
 	}
 	if _, err := stream.Write(wireMsg); err != nil {
-		stream.Close()
+		_ = stream.Close()
 		return QueryResult{
 			Duration: time.Since(start),
 			Err:      fmt.Errorf("failed to write DNS message: %w", err),

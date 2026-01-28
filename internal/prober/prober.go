@@ -98,8 +98,10 @@ func (p *Prober) Run(ctx context.Context) {
 
 // Close releases all resolver resources
 func (p *Prober) Close() {
-	for _, r := range p.resolvers {
-		r.Close()
+	for name, r := range p.resolvers {
+		if err := r.Close(); err != nil {
+			log.Printf("warning: failed to close resolver %s: %v", name, err)
+		}
 	}
 }
 
